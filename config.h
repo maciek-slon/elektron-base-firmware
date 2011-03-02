@@ -6,3 +6,5 @@
 
 #define PWM1_DIR _RB15
 #define PWM2_DIR _RB13
+
+#define MAX_WATCHDOG_LOOPS 10

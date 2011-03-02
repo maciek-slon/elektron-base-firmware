@@ -21,6 +21,8 @@ extern int speed2;
 extern int tspeed1;
 extern int tspeed2;
 
+extern int watchdog_loops;
+
 // Local variables
 union packet pack;
 
@@ -44,9 +46,13 @@ void __attribute__((interrupt, no_auto_psv)) _U1RXInterrupt(void) {
                 pack.getpos.spead1 = speed1;
                 pack.getpos.spead2 = speed2;
                 writeUART1((char*) &pack, sizeof (struct sergetpos));
-                break;
-            case PID_CMD:
 
+                watchdog_loops = 0;
+
+                break;
+
+
+            case PID_CMD:
                 readUART1((char*) &pack, sizeof (struct sersetpid));
                 kCoeffs[0] = pack.setpid.p1;
                 kCoeffs[1] = pack.setpid.i1;

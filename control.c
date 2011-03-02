@@ -15,6 +15,10 @@ int tspeed2 = 0;
 tPID pid1;
 tPID pid2;
 
+int watchdog_loops = 0;
+
+
+
 // Local variables
 int lpos1 = 0;
 int lpos2 = 0;
@@ -42,46 +46,54 @@ void __attribute__((interrupt, no_auto_psv)) _T1Interrupt(void) {
     int pos;
     int i;
 
-    // ---------------------------------------
-    pos = GetPos1();
-    pos += 4 * ENCRES * GetIndex1();
 
-    speedbuf1[spi] = pos - lpos1;
-    lpos1 = pos;
+    if (watchdog_loops > MAX_WATCHDOG_LOOPS) {
+        setPWM1(0);
+        setPWM2(0);
+    } else {
+        ++watchdog_loops;
 
-    speed1 = 0;
+        // ---------------------------------------
+        pos = GetPos1();
+        pos += 4 * ENCRES * GetIndex1();
 
-    for (i = 0; i < 10; i++)
-        speed1 += speedbuf1[i];
+        speedbuf1[spi] = pos - lpos1;
+        lpos1 = pos;
 
-    pid1.measuredOutput = speed1;
-    pid1.controlReference = tspeed1;
+        speed1 = 0;
 
-    PID(&pid1);
+        for (i = 0; i < 10; i++)
+            speed1 += speedbuf1[i];
 
-    setPWM1(pid1.controlOutput);
+        pid1.measuredOutput = speed1;
+        pid1.controlReference = tspeed1;
 
-    // -------------------------------------
+        PID(&pid1);
 
-    pos = GetPos2();
-    pos += 4 * ENCRES * GetIndex2();
+        setPWM1(pid1.controlOutput);
 
-    speedbuf2[spi] = pos - lpos2;
-    lpos2 = pos;
-    spi++;
-    if (spi > 9)
-        spi = 0;
+        // -------------------------------------
 
-    speed2 = 0;
-    for (i = 0; i < 10; i++)
-        speed2 += speedbuf2[i];
+        pos = GetPos2();
+        pos += 4 * ENCRES * GetIndex2();
 
-    pid2.measuredOutput = speed2;
-    pid2.controlReference = tspeed2;
+        speedbuf2[spi] = pos - lpos2;
+        lpos2 = pos;
+        spi++;
+        if (spi > 9)
+            spi = 0;
 
-    PID(&pid2);
+        speed2 = 0;
+        for (i = 0; i < 10; i++)
+            speed2 += speedbuf2[i];
 
-    setPWM2(pid2.controlOutput);
+        pid2.measuredOutput = speed2;
+        pid2.controlReference = tspeed2;
+
+        PID(&pid2);
+
+        setPWM2(pid2.controlOutput);
+    }
 
     IFS0bits.T1IF = 0; //Clear Timer1 interrupt flag
 }
